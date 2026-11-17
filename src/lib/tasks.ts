@@ -4,6 +4,8 @@
  * Persistencia: localStorage, sin backend ni cuentas.
  */
 
+import { useSyncExternalStore } from "react";
+
 export type Urgency = "alta" | "media" | "baja";
 export type Importance = "alta" | "media" | "baja";
 
@@ -29,6 +31,25 @@ const WEIGHT: Record<Urgency | Importance, number> = {
 /** Puntuación de prioridad: 2 (baja/baja) a 6 (alta/alta). */
 export function priorityScore(task: Task): number {
   return WEIGHT[task.urgency] + WEIGHT[task.importance];
+}
+
+/**
+ * Insignia de prioridad derivada de la puntuación Eisenhower (2–6).
+ * Mapeo: 6 → P1 (Alta), 5 → P2 (Alta), 4 → P3 (Media), 3–2 → P4 (Baja).
+ * El orden dentro del mismo nivel lo decide priorityScore en sortByPriority.
+ */
+export interface PriorityBadge {
+  level: 1 | 2 | 3 | 4;
+  label: string; // "P1".."P4"
+  text: string; // "Alta" | "Media" | "Baja"
+}
+
+export function priorityBadge(task: Task): PriorityBadge {
+  const score = priorityScore(task);
+  if (score >= 6) return { level: 1, label: "P1", text: "Alta" };
+  if (score === 5) return { level: 2, label: "P2", text: "Alta" };
+  if (score === 4) return { level: 3, label: "P3", text: "Media" };
+  return { level: 4, label: "P4", text: "Baja" };
 }
 
 /** Orden del día: primero sin completar, por prioridad desc, luego por creación. */
@@ -80,4 +101,61 @@ export function createTaskId(): string {
     return crypto.randomUUID();
   }
   return `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * Tareas como store externo sincronizado con localStorage.
+ * React 19 recomienda `useSyncExternalStore` para datos externos como
+ * localStorage: evita el anti-patrón de setState dentro de un efecto
+ * (regla react-hooks/set-state-in-effect) y el mismatch de hidratación,
+ * porque en el servidor se usa el snapshot vacío y en el cliente se
+ * re-renderiza con el snapshot real tras hidratar.
+ */
+let cachedTasks: Task[] | null = null;
+const taskListeners = new Set<() => void>();
+
+function getTasksSnapshot(): Task[] {
+  if (cachedTasks === null) {
+    cachedTasks = loadTasks();
+  }
+  return cachedTasks;
+}
+
+// React exige que el snapshot del servidor sea una referencia estable
+// (si no, avisa de posible bucle infinito). Nunca se muta: updateTasks
+// siempre crea un array nuevo.
+const EMPTY_TASKS: Task[] = [];
+
+function getTasksServerSnapshot(): Task[] {
+  return EMPTY_TASKS;
+}
+
+function subscribeToTasks(listener: () => void): () => void {
+  taskListeners.add(listener);
+  return () => {
+    taskListeners.delete(listener);
+  };
+}
+
+function emitTasksChange(): void {
+  for (const listener of taskListeners) listener();
+}
+
+/** Hook de tareas: lee de localStorage y persiste cada cambio. */
+export function useTasks(): {
+  tasks: Task[];
+  updateTasks: (updater: (prev: Task[]) => Task[]) => void;
+} {
+  const tasks = useSyncExternalStore(
+    subscribeToTasks,
+    getTasksSnapshot,
+    getTasksServerSnapshot,
+  );
+  const updateTasks = (updater: (prev: Task[]) => Task[]) => {
+    const next = updater(getTasksSnapshot());
+    cachedTasks = next;
+    saveTasks(next);
+    emitTasksChange();
+  };
+  return { tasks, updateTasks };
 }
