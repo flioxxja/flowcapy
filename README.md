@@ -2,7 +2,7 @@
 
 Centro de comando diario de productividad, **local-first**: sin backend, sin cuentas, sin claves. Todo se guarda en `localStorage` y funciona offline.
 
-**Estado: scaffold (prompts 5–8).** Estructura, tema oscuro mobile-first y lógica base (tareas, Pomodoro, rachas) listos. La funcionalidad completa (CRUD, temporizador, rachas en vivo) se construye en los ciclos siguientes.
+**Estado:** gestor de tareas y Pomodoro funcionales, con persistencia local versionada y validación automática. Las rachas en vivo se construyen en el ciclo siguiente.
 
 ## Qué hace (MVP, según SPEC)
 
@@ -25,6 +25,7 @@ npm install
 npm run dev      # http://localhost:3000
 npm run build    # build de producción
 npm run lint     # ESLint
+npm test         # motor determinista + regresiones E2E
 ```
 
 ## Hackatón

@@ -1,13 +1,24 @@
 "use client";
 
 /**
- * FlowCapy — ciclo 1 (prompts 9–12): gestor de tareas.
+ * FlowCapy — ciclos 1 y 2: gestor de tareas y temporizador Pomodoro.
  * Alta de tareas (título + urgencia + importancia), lista ordenada por
  * prioridad Eisenhower, completar/descompletar y eliminar.
  * Persistencia en localStorage vía src/lib/tasks.ts; sin backend ni datos falsos.
- * Pomodoro y Rachas siguen como placeholders honestos (ciclos 2 y 3).
+ * Rachas sigue como placeholder honesto (ciclo 3).
  */
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  advancePomodoro,
+  durationForPhase,
+  formatDuration,
+  pausePomodoro,
+  remainingPomodoroSeconds,
+  resetPomodoro,
+  sessionsToday,
+  startPomodoro,
+  usePomodoroStore,
+} from "@/lib/pomodoro";
 import {
   createTaskId,
   priorityBadge,
@@ -68,6 +79,158 @@ function TaskRow({
         ×
       </button>
     </li>
+  );
+}
+
+function PomodoroTimer() {
+  const { state, storageWarning, updateState } = usePomodoroStore();
+  const [now, setNow] = useState(() => Date.now());
+  const [currentDay, setCurrentDay] = useState(() => new Date());
+
+  const { timer, sessions } = state;
+  const totalSeconds = durationForPhase(timer.phase);
+  const remainingSeconds = remainingPomodoroSeconds(state, now);
+  const progress =
+    totalSeconds === 0
+      ? 0
+      : Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
+  const completedToday = sessionsToday(sessions, currentDay);
+
+  useEffect(() => {
+    const updateCurrentDay = () => setCurrentDay(new Date());
+    const interval = window.setInterval(updateCurrentDay, 60_000);
+    window.addEventListener("focus", updateCurrentDay);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", updateCurrentDay);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (timer.status !== "running") return;
+
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      updateState((previous) => advancePomodoro(previous, currentTime));
+    };
+
+    updateTimer();
+    const interval = window.setInterval(updateTimer, 250);
+    return () => window.clearInterval(interval);
+  }, [timer.status, updateState]);
+
+  function toggleTimer() {
+    const currentTime = Date.now();
+    setNow(currentTime);
+    updateState((previous) =>
+      previous.timer.status === "running"
+        ? pausePomodoro(previous, currentTime)
+        : startPomodoro(previous, currentTime),
+    );
+  }
+
+  function resetTimer() {
+    setNow(Date.now());
+    updateState(resetPomodoro);
+  }
+
+  const phaseLabel = timer.phase === "focus" ? "Enfoque" : "Descanso";
+  const actionLabel =
+    timer.status === "running"
+      ? "Pausar"
+      : timer.status === "paused"
+        ? "Reanudar"
+        : "Iniciar";
+  const minutesRemaining = Math.ceil(remainingSeconds / 60);
+  const announcement = `${phaseLabel}: ${minutesRemaining} minutos restantes`;
+
+  return (
+    <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+      <div className="flex min-w-0 flex-col items-center">
+        <div
+          className="relative grid h-52 w-52 place-items-center rounded-full sm:h-60 sm:w-60"
+          style={{
+            background: `conic-gradient(var(--accent) ${progress * 360}deg, rgba(255, 255, 255, 0.08) 0deg)`,
+            transition: "background 250ms linear",
+          }}
+          role="progressbar"
+          aria-label={`Progreso de ${phaseLabel.toLowerCase()}`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuetext={`${formatDuration(remainingSeconds)} restantes`}
+        >
+          <div className="grid h-[calc(100%-12px)] w-[calc(100%-12px)] place-items-center rounded-full bg-surface text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                {phaseLabel}
+              </p>
+              <p
+                className="mt-1 font-display text-5xl font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-6xl"
+                role="timer"
+                aria-live="off"
+                aria-label={`${phaseLabel}: ${formatDuration(remainingSeconds)} restantes`}
+              >
+                {formatDuration(remainingSeconds)}
+              </p>
+              <p className="mt-2 text-xs text-muted">tiempo restante</p>
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-center text-xs text-muted">
+          {timer.phase === "focus"
+            ? "Concéntrate en una tarea. Al terminar, tendrás 5 minutos de descanso."
+            : "Respira y descansa. Después volverás a una sesión de enfoque."}
+        </p>
+        <p
+          className="sr-only"
+          data-testid="pomodoro-announcement"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {announcement}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 md:w-44">
+        <button
+          type="button"
+          onClick={toggleTimer}
+          className="min-h-11 rounded-xl bg-accent px-5 text-sm font-bold text-black transition-opacity hover:opacity-90"
+        >
+          {actionLabel}
+        </button>
+        <button
+          type="button"
+          onClick={resetTimer}
+          className="min-h-11 rounded-xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-foreground transition-colors hover:bg-white/10"
+        >
+          Reiniciar
+        </button>
+        <div
+          className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-center"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <p className="text-xs text-muted">
+            Sesiones completadas hoy:{" "}
+            <strong className="font-display text-3xl font-bold tabular-nums text-accent">
+              {completedToday}
+            </strong>
+          </p>
+        </div>
+        {storageWarning && (
+          <p
+            className="rounded-xl border border-[#ff6b5e]/40 bg-[#ff6b5e]/10 px-4 py-3 text-sm text-[#ff9d92]"
+            data-testid="pomodoro-storage-warning"
+            role="status"
+          >
+            {storageWarning}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -169,7 +332,7 @@ export default function Home() {
               placeholder="Ej.: Terminar el ensayo de historia"
               maxLength={120}
               autoComplete="off"
-              className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground outline-none placeholder:text-muted/70 focus:border-accent"
+              className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground placeholder:text-muted/70 focus:border-accent"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -184,7 +347,7 @@ export default function Home() {
                 id="new-task-urgency"
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value as Urgency)}
-                className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground outline-none focus:border-accent"
+                className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground focus:border-accent"
               >
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
@@ -202,7 +365,7 @@ export default function Home() {
                 id="new-task-importance"
                 value={importance}
                 onChange={(e) => setImportance(e.target.value as Importance)}
-                className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground outline-none focus:border-accent"
+                className="min-h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-foreground focus:border-accent"
               >
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
@@ -259,6 +422,7 @@ export default function Home() {
           Temporizador de 25 minutos de enfoque y 5 de descanso, con contador
           de sesiones completadas.
         </p>
+        <PomodoroTimer />
       </section>
 
       <section aria-labelledby="streaks-title" className="flow-section">
