@@ -28,6 +28,11 @@ import {
   type Task,
   type Urgency,
 } from "@/lib/tasks";
+import {
+  currentStreak,
+  registerToday,
+  useCompletedDays,
+} from "@/lib/streaks";
 
 const BADGE_STYLES: Record<number, string> = {
   1: "border-[#ff6b5e]/50 bg-[#ff6b5e]/15 text-[#ff9d92]",
@@ -234,12 +239,106 @@ function PomodoroTimer() {
   );
 }
 
+function Capybara() {
+  return (
+    <svg
+      role="img"
+      aria-label="Capibara"
+      viewBox="0 0 220 130"
+      className="flow-capybara mx-auto h-auto w-56"
+    >
+      <ellipse cx="135" cy="100" rx="72" ry="30" fill="#9c7a54" />
+      <ellipse cx="135" cy="106" rx="58" ry="20" fill="#a9855e" />
+      <rect x="96" y="112" width="18" height="12" rx="6" fill="#8a6d4b" />
+      <rect x="150" y="112" width="18" height="12" rx="6" fill="#8a6d4b" />
+      <circle cx="80" cy="32" r="7" fill="#8a6d4b" />
+      <circle cx="52" cy="34" r="8" fill="#8a6d4b" />
+      <circle cx="52" cy="34" r="4" fill="#6b543a" />
+      <circle cx="64" cy="28" r="7" fill="#e8a94e" />
+      <circle cx="62" cy="62" r="30" fill="#a9855e" />
+      <ellipse cx="38" cy="72" rx="16" ry="11" fill="#b08d63" />
+      <ellipse cx="26" cy="66" rx="5" ry="4" fill="#3a2e22" />
+      <circle cx="58" cy="54" r="3.5" fill="#2b2118" />
+      <circle cx="59" cy="53" r="1" fill="#ffffff" />
+    </svg>
+  );
+}
+
+function StreaksSection({ capybaraVisible }: { capybaraVisible: boolean }) {
+  const { days } = useCompletedDays();
+  const [today, setToday] = useState(() => new Date());
+
+  // La racha se recalcula con la fecha local: a medianoche (o al volver a la
+  // pestaña) el contador se actualiza sin romper el estado guardado.
+  useEffect(() => {
+    const updateToday = () => setToday(new Date());
+    const interval = window.setInterval(updateToday, 60_000);
+    window.addEventListener("focus", updateToday);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", updateToday);
+    };
+  }, []);
+
+  const streak = currentStreak(days, today);
+
+  return (
+    <section aria-labelledby="streaks-title" className="flow-section">
+      <div className="flex items-center gap-3">
+        <span className="flow-num" aria-hidden="true">03</span>
+        <h2 id="streaks-title" className="font-display text-xl font-semibold">
+          Rachas
+        </h2>
+      </div>
+      <div className="mt-4 flex items-end gap-4">
+        <p className="sr-only">
+          Racha actual: {streak} {streak === 1 ? "día" : "días"}
+        </p>
+        <p
+          className="font-display text-6xl font-bold leading-none tabular-nums text-accent"
+          aria-hidden="true"
+        >
+          {streak}
+        </p>
+        <p className="flow-empty pb-1">
+          {streak === 0
+            ? "Aún no tienes racha. Completa una tarea hoy para empezar la tuya."
+            : streak === 1
+              ? "día seguido completando al menos una tarea."
+              : "días seguidos completando al menos una tarea."}
+        </p>
+      </div>
+      <div aria-live="polite">
+        {capybaraVisible && (
+          <div className="flow-reveal mt-5">
+            <Capybara />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   // Store externo sincronizado con localStorage (sin efectos: ver useTasks).
   const { tasks, updateTasks } = useTasks();
   const [title, setTitle] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("media");
   const [importance, setImportance] = useState<Importance>("media");
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [capybaraVisible, setCapybaraVisible] = useState(false);
+
+  // Capibara escondido: 3 activaciones del logo lo revelan (o lo esconden).
+  // El estado vive solo en memoria: al recargar vuelve a estar escondido.
+  function handleLogoClick() {
+    const next = logoClicks + 1;
+    if (next >= 3) {
+      setCapybaraVisible((prev) => !prev);
+      setLogoClicks(0);
+    } else {
+      setLogoClicks(next);
+    }
+  }
 
   const ordered = sortByPriority(tasks);
   const pending = ordered.filter((t) => !t.completed);
@@ -263,17 +362,20 @@ export default function Home() {
 
   function toggleTask(id: string) {
     updateTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              completed: !t.completed,
-              completedAt: !t.completed
-                ? new Date().toISOString()
-                : undefined,
-            }
-          : t,
-      ),
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const completed = !t.completed;
+        if (completed) {
+          // El día cuenta cuando se completó al menos una tarea ese día;
+          // descompletar o borrar tareas después no borra el día registrado.
+          registerToday();
+        }
+        return {
+          ...t,
+          completed,
+          completedAt: completed ? new Date().toISOString() : undefined,
+        };
+      }),
     );
   }
 
@@ -284,13 +386,14 @@ export default function Home() {
   return (
     <main className="relative z-[1] mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-5 px-4 pb-12 pt-6 sm:px-6">
       <header className="flex items-center justify-between gap-4">
-        <a
-          href="#"
+        <button
+          type="button"
+          onClick={handleLogoClick}
           className="font-display text-3xl font-bold tracking-tight"
           aria-label="FlowCapy — inicio"
         >
           FlowCapy<span className="text-accent">.</span>
-        </a>
+        </button>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted">
           Local-first · sin cuentas
         </span>
@@ -457,17 +560,7 @@ export default function Home() {
         <PomodoroTimer />
       </section>
 
-      <section aria-labelledby="streaks-title" className="flow-section">
-        <div className="flex items-center gap-3">
-          <span className="flow-num" aria-hidden="true">03</span>
-          <h2 id="streaks-title" className="font-display text-xl font-semibold">
-            Rachas
-          </h2>
-        </div>
-        <p className="flow-empty mt-2">
-          Días seguidos completando al menos una tarea. Tu racha aparecerá aquí.
-        </p>
-      </section>
+      <StreaksSection capybaraVisible={capybaraVisible} />
 
       <footer className="mt-auto pt-4 text-center text-xs text-muted">
         FlowCapy · Teens Hack Houston (Triple H) · Tech Track

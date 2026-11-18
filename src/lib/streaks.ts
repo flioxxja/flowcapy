@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from "react";
+
 /**
  * Rachas de FlowCapy — lógica base (scaffold, prompts 5–8).
  * Se conecta a la UI en los ciclos de construcción (prompts 9–38).
@@ -55,4 +57,65 @@ function toKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Días completados como store externo sincronizado con localStorage.
+ * Mismo patrón que useTasks: evita el anti-patrón de setState dentro de un
+ * efecto y el mismatch de hidratación, porque en el servidor se usa el
+ * snapshot vacío y en el cliente se re-renderiza con el set real tras hidratar.
+ */
+let cachedDays: CompletedDaySet | null = null;
+const dayListeners = new Set<() => void>();
+
+function getDaysSnapshot(): CompletedDaySet {
+  if (cachedDays === null) {
+    cachedDays = loadCompletedDays();
+  }
+  return cachedDays;
+}
+
+// React exige que el snapshot del servidor sea una referencia estable
+// (si no, avisa de posible bucle infinito). Nunca se muta: registerToday
+// siempre crea un set nuevo.
+const EMPTY_DAYS: CompletedDaySet = new Set();
+
+function getDaysServerSnapshot(): CompletedDaySet {
+  return EMPTY_DAYS;
+}
+
+function subscribeToDays(listener: () => void): () => void {
+  dayListeners.add(listener);
+  return () => {
+    dayListeners.delete(listener);
+  };
+}
+
+function emitDaysChange(): void {
+  for (const listener of dayListeners) listener();
+}
+
+/**
+ * Registra el día de hoy como día con al menos una tarea completada.
+ * Decisión documentada: el día cuenta cuando se completó al menos una tarea
+ * ese día; descompletar o borrar tareas después NO borra el día ya registrado.
+ */
+export function registerToday(days: CompletedDaySet = getDaysSnapshot()): void {
+  const todayKey = toKey(new Date());
+  if (days.has(todayKey)) return;
+  const next = new Set(days);
+  next.add(todayKey);
+  cachedDays = next;
+  saveCompletedDays(next);
+  emitDaysChange();
+}
+
+/** Hook de rachas: lee los días guardados y se actualiza con cada registro. */
+export function useCompletedDays(): { days: CompletedDaySet } {
+  const days = useSyncExternalStore(
+    subscribeToDays,
+    getDaysSnapshot,
+    getDaysServerSnapshot,
+  );
+  return { days };
 }
