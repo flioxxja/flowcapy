@@ -41,6 +41,41 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Aurora de fondo: orbes ámbar/violeta con deriva lenta + rejilla de puntos. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 30rem at 85% -10%, rgba(232, 169, 78, 0.16), transparent 60%),
+    radial-gradient(38rem 28rem at -10% 30%, rgba(124, 92, 255, 0.14), transparent 60%),
+    radial-gradient(30rem 22rem at 50% 110%, rgba(232, 169, 78, 0.08), transparent 60%);
+  animation: flow-aurora 36s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%);
+}
+
+@keyframes flow-aurora {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-2%, 3%, 0) scale(1.06);
+  }
+}
+
 a {
   color: inherit;
 }
@@ -57,18 +92,138 @@ select:focus-visible {
   outline-offset: 3px;
 }
 
-/* Scaffold placeholders: honest empty states, no fake data. */
+/* Tarjetas con glass: fondo translúcido, desenfoque, relieve y entrada suave. */
 .flow-section {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 20px;
-  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+  background: linear-gradient(160deg, rgba(17, 24, 31, 0.82), rgba(22, 32, 41, 0.82));
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   padding: 20px;
+  animation: flow-rise 0.8s cubic-bezier(0.22, 0.7, 0.25, 1) both;
+}
+
+main > section:nth-of-type(2) {
+  animation-delay: 0.08s;
+}
+
+main > section:nth-of-type(3) {
+  animation-delay: 0.16s;
+}
+
+main > section:nth-of-type(4) {
+  animation-delay: 0.24s;
+}
+
+@keyframes flow-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .flow-empty {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Hero editorial: titular gigante con acento en degradado ámbar. */
+.flow-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.9rem, 12vw, 6rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.flow-hero-accent {
+  background: linear-gradient(92deg, #e8a94e 10%, #f7d794 55%, #e8a94e 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Marca de agua gigante con contorno, detrás del hero. */
+.flow-watermark {
+  position: absolute;
+  top: -0.5rem;
+  right: -1rem;
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 19vw, 10rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Número editorial de sección (01/02/03) con regla ámbar. */
+.flow-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.flow-num::after {
+  content: "";
+  width: 2rem;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+
+/* Marquee sutil bajo el header. */
+.flow-marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 0;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.flow-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(232, 238, 242, 0.45);
+  animation: flow-marquee 30s linear infinite;
+}
+
+.flow-marquee-track span {
+  white-space: nowrap;
+}
+
+@keyframes flow-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

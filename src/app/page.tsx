@@ -149,7 +149,7 @@ function PomodoroTimer() {
     <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
       <div className="flex min-w-0 flex-col items-center">
         <div
-          className="relative grid h-52 w-52 place-items-center rounded-full sm:h-60 sm:w-60"
+          className="relative grid h-56 w-56 place-items-center rounded-full shadow-[0_0_90px_rgba(232,169,78,0.14)] sm:h-64 sm:w-64"
           style={{
             background: `conic-gradient(var(--accent) ${progress * 360}deg, rgba(255, 255, 255, 0.08) 0deg)`,
             transition: "background 250ms linear",
@@ -167,7 +167,7 @@ function PomodoroTimer() {
                 {phaseLabel}
               </p>
               <p
-                className="mt-1 font-display text-5xl font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-6xl"
+                className="mt-1 font-display text-6xl font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-7xl"
                 role="timer"
                 aria-live="off"
                 aria-label={`${phaseLabel}: ${formatDuration(remainingSeconds)} restantes`}
@@ -197,7 +197,7 @@ function PomodoroTimer() {
         <button
           type="button"
           onClick={toggleTimer}
-          className="min-h-11 rounded-xl bg-accent px-5 text-sm font-bold text-black transition-opacity hover:opacity-90"
+          className="min-h-11 rounded-xl bg-accent px-5 text-sm font-bold text-black shadow-[0_10px_30px_rgba(232,169,78,0.22)] transition-all hover:opacity-90 active:scale-[0.98]"
         >
           {actionLabel}
         </button>
@@ -282,11 +282,11 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-5 px-4 pb-12 pt-6 sm:px-6">
+    <main className="relative z-[1] mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-5 px-4 pb-12 pt-6 sm:px-6">
       <header className="flex items-center justify-between gap-4">
         <a
           href="#"
-          className="font-display text-2xl font-bold tracking-tight"
+          className="font-display text-3xl font-bold tracking-tight"
           aria-label="FlowCapy — inicio"
         >
           FlowCapy<span className="text-accent">.</span>
@@ -296,20 +296,49 @@ export default function Home() {
         </span>
       </header>
 
-      <section aria-label="Resumen del día" className="flow-section">
-        <h1 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-          Tu día en una sola pantalla
+      <div className="flow-marquee" aria-hidden="true">
+        <div className="flow-marquee-track">
+          <span>Enfoque ✦ Tareas ✦ Pomodoro ✦ Rachas ✦ FlowCapy ✦&nbsp;</span>
+          <span>Enfoque ✦ Tareas ✦ Pomodoro ✦ Rachas ✦ FlowCapy ✦&nbsp;</span>
+        </div>
+      </div>
+
+      <section aria-label="Resumen del día" className="flow-section relative overflow-hidden">
+        <span className="flow-watermark" aria-hidden="true">FLOWCAPY</span>
+        <h1 className="flow-hero-title relative">
+          Tu <span className="flow-hero-accent">día</span> en una sola pantalla
         </h1>
-        <p className="flow-empty mt-2">
+        <p className="flow-empty relative mt-4 max-w-md">
           Tareas con prioridad automática, Pomodoro y rachas — todo guardado en
           tu navegador, sin backend.
         </p>
+        <div className="relative mt-6 flex gap-10">
+          <div>
+            <p className="font-display text-3xl font-bold tabular-nums">
+              {pending.length}
+            </p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              pendientes
+            </p>
+          </div>
+          <div>
+            <p className="font-display text-3xl font-bold tabular-nums text-accent">
+              {completed.length}
+            </p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              completadas
+            </p>
+          </div>
+        </div>
       </section>
 
       <section aria-labelledby="tasks-title" className="flow-section">
-        <h2 id="tasks-title" className="font-display text-xl font-semibold">
-          Plan del día
-        </h2>
+        <div className="flex items-center gap-3">
+          <span className="flow-num" aria-hidden="true">01</span>
+          <h2 id="tasks-title" className="font-display text-xl font-semibold">
+            Plan del día
+          </h2>
+        </div>
         <p className="flow-empty mt-2">
           {pending.length === 0
             ? "Aún no hay tareas. Añade la primera abajo: se ordena sola por prioridad (Eisenhower: urgencia + importancia)."
@@ -376,7 +405,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={title.trim() === ""}
-            className="min-h-11 rounded-xl bg-accent px-4 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-11 rounded-xl bg-accent px-4 text-sm font-bold text-black shadow-[0_10px_30px_rgba(232,169,78,0.22)] transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Añadir tarea
           </button>
@@ -415,9 +444,12 @@ export default function Home() {
       </section>
 
       <section aria-labelledby="pomodoro-title" className="flow-section">
-        <h2 id="pomodoro-title" className="font-display text-xl font-semibold">
-          Pomodoro
-        </h2>
+        <div className="flex items-center gap-3">
+          <span className="flow-num" aria-hidden="true">02</span>
+          <h2 id="pomodoro-title" className="font-display text-xl font-semibold">
+            Pomodoro
+          </h2>
+        </div>
         <p className="flow-empty mt-2">
           Temporizador de 25 minutos de enfoque y 5 de descanso, con contador
           de sesiones completadas.
@@ -426,9 +458,12 @@ export default function Home() {
       </section>
 
       <section aria-labelledby="streaks-title" className="flow-section">
-        <h2 id="streaks-title" className="font-display text-xl font-semibold">
-          Rachas
-        </h2>
+        <div className="flex items-center gap-3">
+          <span className="flow-num" aria-hidden="true">03</span>
+          <h2 id="streaks-title" className="font-display text-xl font-semibold">
+            Rachas
+          </h2>
+        </div>
         <p className="flow-empty mt-2">
           Días seguidos completando al menos una tarea. Tu racha aparecerá aquí.
         </p>
