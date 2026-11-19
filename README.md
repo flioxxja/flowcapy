@@ -1,40 +1,29 @@
-# FlowCapy — Tu día en una sola pantalla
+# FlowCapy
 
-Centro de comando diario de productividad, **local-first**: sin backend, sin cuentas, sin claves. Todo se guarda en `localStorage` y funciona offline.
+Centro de enfoque personal **local-first** construido con Next.js App Router, React 19, TypeScript y Tailwind CSS 4. Sin cuentas, sin backend y con persistencia segura en `localStorage`.
 
 **En vivo:** https://flowcapy.vercel.app/
 **Repo:** https://github.com/flioxxja/flowcapy
 
-**Estado:** ciclos 1–3 terminados y en vivo — tareas con prioridad automática, Pomodoro 25/5, rachas reales y capibara escondido. Verificado: tsc 0 errores, lint limpio, build OK, suite 22/22 en verde.
+## Capacidades principales
 
-## Qué hace
+- **Plan del día con prioridad Eisenhower automática** (`P1` a `P4`) + búsqueda en vivo + **Matriz Eisenhower 2×2 interactiva**.
+- **Pomodoro 25/5 con vinculación de tarea activa** ("Enfocar"), **Modo Zen pantalla completa** y persistencia atómica ante recargas o cuotas llenas.
+- **Paisajes sonoros generativos (Web Audio API)** sin archivos externos: ruido marrón profundo, lluvia cálida, binaural 40Hz Focus y campana armónica al cambiar de fase.
+- **Paleta de comandos (`⌘K` / `Ctrl+K`)** para crear tareas urgentes P1, controlar el temporizador, alternar vistas o exportar datos sin tocar el ratón.
+- **Rachas + Mapa de calor de consistencia (28 días)** + mejor racha histórica + **Capibara secreto** (3 clics/Enter en el logo).
+- **Portabilidad total**: copia el resumen del día en Markdown o descarga tu respaldo completo en `.json`.
 
-- Lista de tareas con **prioridad automática (Eisenhower)**: urgencia + importancia ordenan el día solas (P1 → P4).
-- **Temporizador Pomodoro** (25/5) con contador de sesiones completadas y persistencia: si recargas a mitad de sesión, se retoma.
-- **Rachas reales**: días seguidos completando al menos una tarea, guardados en tu dispositivo, con texto honesto (0 si hoy aún no completaste nada).
-- **Capibara escondido**: 3 clics en el logo y aparece.
-- Una sola página, responsive (320px → escritorio), oscura, sin datos falsos.
-
-## Stack
-
-- Next.js 16 (App Router) + React 19 + TypeScript (strict)
-- Tailwind CSS 4
-- Sin backend, sin variables de entorno, sin secretos. Tus datos nunca salen de tu dispositivo.
-
-## Cómo correrlo
+## Desarrollo y verificación
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # build de producción
-npm run lint     # ESLint
-npm test         # motor determinista + regresiones E2E (22/22)
+npm run dev
+npm run lint
+npx tsc --noEmit
+npm run build
+npm test
 ```
-
-## Hackatón
-
-Teens Hack Houston Hackathon (Triple H), Tech Track — tema: productividad.
-Fecha límite: **sábado 21 de noviembre de 2026, 19:00 GMT-4**.
 
 ## Divulgación de IA
 

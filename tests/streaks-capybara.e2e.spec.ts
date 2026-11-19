@@ -97,7 +97,11 @@ test("el Pomodoro y el gestor de tareas siguen funcionando", async ({ page }) =>
   await expect(page.getByRole("timer")).toHaveText("25:00");
   await page.locator("#new-task-title").fill("Tarea de control");
   await page.getByRole("button", { name: "Añadir tarea" }).click();
-  await expect(page.getByText("Tarea de control", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .locator('ul[aria-label="Tareas pendientes por prioridad"]')
+      .getByText("Tarea de control", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Iniciar", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pausar" })).toBeVisible();
 });

@@ -424,5 +424,5 @@ test("mantiene la regresión de prioridad y persistencia de tareas", async ({ pa
   ]);
 
   await page.reload();
-  await expect(page.getByText("Tarea P1", { exact: true })).toBeVisible();
+  await expect(pending.getByText("Tarea P1", { exact: true })).toBeVisible();
 });
